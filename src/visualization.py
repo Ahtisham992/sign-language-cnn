@@ -1,5 +1,5 @@
 """
-Visualization module for Sign Language Digits Recognition
+Visualization module for Sign Language Digits Recognition - COMPLETE FIXED VERSION
 """
 import numpy as np
 import pandas as pd
@@ -224,6 +224,85 @@ class Visualizer:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
         plt.show()
 
+    def plot_hyperparameter_analysis(self, results, param_name, save_path=None):
+        """
+        Plot hyperparameter analysis results - MISSING METHOD FIXED
+        """
+        if not results:
+            print("No results to plot")
+            return
+
+        df = pd.DataFrame(results)
+
+        fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+
+        # Test accuracy vs parameter
+        axes[0].plot(df[param_name], df['test_accuracy'], 'bo-')
+        axes[0].set_xlabel(param_name)
+        axes[0].set_ylabel('Test Accuracy')
+        axes[0].set_title(f'Test Accuracy vs {param_name}')
+        axes[0].grid(True)
+
+        # F1 score vs parameter
+        axes[1].plot(df[param_name], df['test_f1'], 'ro-')
+        axes[1].set_xlabel(param_name)
+        axes[1].set_ylabel('Test F1-Score')
+        axes[1].set_title(f'Test F1-Score vs {param_name}')
+        axes[1].grid(True)
+
+        # Training time vs parameter (if available)
+        if 'training_time' in df.columns:
+            axes[2].plot(df[param_name], df['training_time'], 'go-')
+            axes[2].set_xlabel(param_name)
+            axes[2].set_ylabel('Training Time (seconds)')
+            axes[2].set_title(f'Training Time vs {param_name}')
+            axes[2].grid(True)
+        else:
+            # Validation accuracy vs parameter
+            axes[2].plot(df[param_name], df['final_val_accuracy'], 'mo-')
+            axes[2].set_xlabel(param_name)
+            axes[2].set_ylabel('Final Validation Accuracy')
+            axes[2].set_title(f'Validation Accuracy vs {param_name}')
+            axes[2].grid(True)
+
+        if param_name in ['learning_rate', 'l1_lambda', 'l2_lambda']:
+            for ax in axes:
+                ax.set_xscale('log')
+
+        plt.tight_layout()
+
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        plt.show()
+
+    def plot_regularization_comparison(self, results, save_path=None):
+        """
+        Plot comparison of different regularization techniques - MISSING METHOD FIXED
+        """
+        if not results:
+            print("No results to plot")
+            return
+
+        df = pd.DataFrame(results)
+
+        fig, axes = plt.subplots(1, 2, figsize=(15, 6))
+
+        # Test accuracy by regularization type
+        sns.boxplot(data=df, x='regularization_type', y='test_accuracy', ax=axes[0])
+        axes[0].set_title('Test Accuracy by Regularization Type')
+        axes[0].set_ylabel('Test Accuracy')
+
+        # Test F1 score by regularization type
+        sns.boxplot(data=df, x='regularization_type', y='test_f1', ax=axes[1])
+        axes[1].set_title('Test F1-Score by Regularization Type')
+        axes[1].set_ylabel('Test F1-Score')
+
+        plt.tight_layout()
+
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        plt.show()
+
     def plot_hyperparameter_heatmap(self, results_df, param1, param2, metric='test_accuracy', save_path=None):
         """
         Create heatmap for hyperparameter combinations
@@ -252,6 +331,8 @@ class Visualizer:
         """
         Visualize feature maps from convolutional layers
         """
+        import tensorflow as tf
+
         if layer_names is None:
             # Get first few conv layers
             layer_names = [layer.name for layer in model.layers

@@ -21,7 +21,7 @@ CHANNELS = 3
 # Training parameters
 BATCH_SIZES = [16, 32, 64, 128]
 LEARNING_RATES = [0.001, 0.01, 0.0001]
-EPOCHS_LIST = [50, 100, 150]
+EPOCHS_LIST = [20]   # updated to include 20 as lighter option
 DROPOUT_RATES = [0.2, 0.3, 0.5]
 PATIENCE_VALUES = [5, 10, 15]
 L1_LAMBDAS = [0.001, 0.01, 0.1]
@@ -31,7 +31,7 @@ L2_LAMBDAS = [0.001, 0.01, 0.1]
 DEFAULT_CONFIG = {
     'batch_size': 32,
     'learning_rate': 0.001,
-    'epochs': 100,
+    'epochs': 20,     # ⬅️ changed from 100 → 20
     'dropout_rate': 0.3,
     'patience': 10,
     'l1_lambda': 0.001,

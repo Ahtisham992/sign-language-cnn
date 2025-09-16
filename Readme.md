@@ -65,20 +65,9 @@ sign_language_recognition/
 
 ## Installation
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd sign_language_recognition
-```
-
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-3. Download the dataset:
-   - Download from: https://www.kaggle.com/ardamavi/sign-language-digits-dataset
-   - Place `sign_mnist_train.csv` and `sign_mnist_test.csv` in `data/raw/` directory
+1.  Download the dataset:
+   - Download from: https://github.com/ardamavi/Sign-Language-Digits-Dataset/tree/master/Dataset
+   - Place in `data/raw/` directory
 
 ## Usage
 
@@ -88,6 +77,31 @@ Run the comprehensive analysis:
 ```bash
 python main.py --mode comprehensive
 ```
+### Testing on a Image
+
+To test recognition on a saved photo (e.g., tests/test0.png):
+```bash
+python predict.py
+```
+
+Make sure the image file exists in the correct path (by default tests/).
+
+### Live Camera Testing
+
+To perform real-time digit recognition from your webcam, run:
+```bash
+python liveSign.py
+```
+
+This will:
+
+Open your webcam feed
+
+Show a green bounding box on the screen
+
+Detect your hand gesture inside the box
+
+Instantly display the predicted digit above the box
 
 ### Individual Components
 
@@ -216,52 +230,12 @@ Typical performance metrics:
 - **Deep CNN**: ~92-96% accuracy
 - **ResNet-like**: ~93-97% accuracy
 
-## Troubleshooting
-
-### Common Issues
-
-1. **Dataset not found**:
-   - Ensure CSV files are in `data/raw/` directory
-   - Check file names match exactly
-
-2. **Memory errors**:
-   - Reduce batch size in config.py
-   - Use smaller model architectures
-
-3. **GPU not detected**:
-   - Install tensorflow-gpu
-   - Check CUDA compatibility
-
-4. **Import errors**:
-   - Verify all dependencies installed
-   - Check Python version compatibility
-
-## Contributing
-
-1. Fork the repository
-2. Create feature branch
-3. Make changes with proper testing
-4. Submit pull request with detailed description
-
 ## License
 
-This project is for academic purposes as part of a Generative AI assignment.
+This is Generative AI assignment.
 
 ## Acknowledgments
 
-- Dataset: Kaggle Sign Language Digits Dataset
 - TensorFlow/Keras for deep learning framework
 - Scikit-learn for evaluation metrics
 - Matplotlib/Seaborn for visualizations
-
-## Citation
-
-If using this code for academic purposes, please cite:
-```
-@misc{sign_language_digits_cnn,
-  title={Sign Language Digits Recognition using ConvNets},
-  author={[Your Name]},
-  year={2024},
-  howpublished={GitHub Repository}
-}
-```

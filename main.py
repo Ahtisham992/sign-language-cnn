@@ -322,7 +322,7 @@ def compare_model_architectures():
     print("\n1. Training different model architectures...")
     model_types = ['basic', 'advanced', 'deep', 'resnet']
 
-    results = tuner.compare_models(model_types, epochs=50)  # Reduced epochs for comparison
+    results = tuner.compare_models(model_types, epochs=15)  # Reduced epochs for comparison
 
     # Generate comparison plots
     print("\n2. Generating comparison plots...")

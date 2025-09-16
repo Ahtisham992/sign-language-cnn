@@ -1,5 +1,5 @@
 """
-Data preprocessing module for Sign Language Digits Recognition
+Data preprocessing module for Sign Language Digits Recognition - FIXED FOR FOLDER STRUCTURE
 """
 import numpy as np
 import pandas as pd
@@ -25,11 +25,128 @@ class DataPreprocessor:
         self.y_val = None
         self.y_test = None
 
+    def load_folder_dataset(self, dataset_path=None):
+        """
+        Load the sign language digits dataset from folder structure (0/, 1/, 2/, ..., 9/)
+        """
+        if dataset_path is None:
+            dataset_path = RAW_DATA_DIR
+
+        # Check for the dataset folder structure
+        possible_paths = [
+            os.path.join(dataset_path, 'Dataset'),  # Dataset folder from GitHub
+            os.path.join(dataset_path, 'sign-language-digits-dataset'),  # Alternative naming
+            dataset_path,  # directly in raw data directory
+        ]
+
+        dataset_found = False
+        actual_path = None
+
+        # Find the correct dataset path
+        for path in possible_paths:
+            # Check if digit folders exist (0, 1, 2, ..., 9)
+            digit_folders_exist = all(
+                os.path.exists(os.path.join(path, str(digit)))
+                for digit in range(10)
+            )
+
+            if digit_folders_exist:
+                dataset_found = True
+                actual_path = path
+                print(f"Found dataset structure at: {actual_path}")
+                break
+
+        if not dataset_found:
+            print("Dataset folder structure not found. Please check the following:")
+            print("1. Download the dataset from: https://github.com/ardamavi/Sign-Language-Digits-Dataset")
+            print("2. Extract and place the 'Dataset' folder in the data/raw/ directory")
+            print("3. The folder should contain subfolders: 0/, 1/, 2/, ..., 9/")
+            print("4. Each subfolder should contain image files (.png, .jpg, .jpeg)")
+            return False
+
+        try:
+            print(f"Loading dataset from folder structure: {actual_path}")
+
+            images = []
+            labels = []
+
+            # Load images from each digit folder
+            for digit in range(10):
+                digit_folder = os.path.join(actual_path, str(digit))
+                print(f"Loading digit {digit} from: {digit_folder}")
+
+                if not os.path.exists(digit_folder):
+                    print(f"Warning: Folder for digit {digit} not found")
+                    continue
+
+                # Get all image files in the digit folder
+                image_files = [f for f in os.listdir(digit_folder)
+                              if f.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff'))]
+
+                print(f"  Found {len(image_files)} images for digit {digit}")
+
+                for img_file in image_files:
+                    img_path = os.path.join(digit_folder, img_file)
+
+                    # Load image
+                    img = cv2.imread(img_path)
+                    if img is not None:
+                        # Convert BGR to RGB
+                        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+                        # Resize to target size (64x64)
+                        img = cv2.resize(img, IMAGE_SIZE)
+
+                        images.append(img)
+                        labels.append(digit)
+                    else:
+                        print(f"  Warning: Could not load image {img_path}")
+
+            if len(images) == 0:
+                print("No images were loaded. Please check the dataset structure.")
+                return False
+
+            # Convert to numpy arrays
+            self.image_data = np.array(images, dtype=np.uint8)
+            self.labels = np.array(labels, dtype=np.int32)
+
+            print(f"Dataset loaded successfully!")
+            print(f"Total images loaded: {len(self.image_data)}")
+            print(f"Image shape: {self.image_data.shape}")
+            print(f"Labels shape: {self.labels.shape}")
+            print(f"Image data type: {self.image_data.dtype}")
+            print(f"Labels data type: {self.labels.dtype}")
+            print(f"Image value range: [{self.image_data.min()}, {self.image_data.max()}]")
+            print(f"Label range: [{self.labels.min()}, {self.labels.max()}]")
+
+            # Show class distribution
+            unique_labels, counts = np.unique(self.labels, return_counts=True)
+            print("Class distribution:")
+            for label, count in zip(unique_labels, counts):
+                print(f"  Digit {label}: {count} samples")
+
+            # Verify data integrity
+            print("\nVerifying data integrity...")
+            assert len(self.image_data) == len(self.labels), f"Data length mismatch: {len(self.image_data)} images vs {len(self.labels)} labels"
+            assert self.image_data.shape[1:] == (64, 64, 3), f"Images should be (64, 64, 3), got {self.image_data.shape[1:]}"
+            assert np.all(self.labels >= 0) and np.all(self.labels < NUM_CLASSES), f"Invalid label range: {self.labels.min()} to {self.labels.max()}"
+            assert len(unique_labels) == NUM_CLASSES, f"Expected {NUM_CLASSES} classes, found {len(unique_labels)}"
+
+            print("Data integrity check passed!")
+            return True
+
+        except Exception as e:
+            print(f"Error loading dataset: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return False
+
     def load_numpy_dataset(self, dataset_path=None):
         """
-        Load the sign language digits dataset from .npy files
-        If dataset_path is None, assumes data is in RAW_DATA_DIR
+        Load the sign language digits dataset from .npy files - LEGACY METHOD
         """
+        print("Attempting to load from .npy files...")
+
         if dataset_path is None:
             dataset_path = RAW_DATA_DIR
 
@@ -39,7 +156,7 @@ class DataPreprocessor:
         # Try different possible paths
         possible_paths = [
             sign_lang_folder,  # sign-language-digits-dataset folder
-            dataset_path,      # directly in raw data directory
+            dataset_path,  # directly in raw data directory
             os.path.join(dataset_path, 'data')  # in case there's a data subfolder
         ]
 
@@ -61,15 +178,8 @@ class DataPreprocessor:
                 break
 
         if not dataset_found:
-            print("Dataset .npy files not found. Please check the following:")
-            print("1. Download the dataset from: https://www.kaggle.com/ardamavi/sign-language-digits-dataset")
-            print("2. Extract the zip file")
-            print("3. Place the 'sign-language-digits-dataset' folder in the data/raw/ directory")
-            print("4. The folder should contain X.npy and Y.npy (or x.npy and y.npy) files")
-            print(f"Expected paths checked:")
-            for path in possible_paths:
-                print(f"  - {os.path.join(path, 'X.npy')} or {os.path.join(path, 'x.npy')}")
-            return False
+            print(".npy files not found. Trying folder structure instead...")
+            return self.load_folder_dataset(dataset_path)
 
         try:
             # Load the numpy arrays
@@ -88,101 +198,65 @@ class DataPreprocessor:
 
             print(f"Loaded images shape: {images.shape}")
             print(f"Loaded labels shape: {labels.shape}")
-            print(f"Image data type: {images.dtype}")
-            print(f"Labels data type: {labels.dtype}")
-            print(f"Image value range: [{images.min()}, {images.max()}]")
-            print(f"Unique labels: {np.unique(labels)}")
 
-            # Handle different possible image formats
+            # Handle one-hot encoded labels if necessary
+            if len(labels.shape) == 2 and labels.shape[1] == NUM_CLASSES:
+                print("Labels are one-hot encoded. Converting to class indices...")
+                labels = np.argmax(labels, axis=1)
+
+            # Handle different image formats and resize if needed
             if len(images.shape) == 4:
-                # Already in the correct format (N, H, W, C) or (N, H, W, 1)
                 if images.shape[-1] == 1:
                     # Convert grayscale to RGB
                     images = np.repeat(images, 3, axis=-1)
                 elif images.shape[-1] == 3:
-                    # Already RGB
-                    pass
-                else:
-                    print(f"Unexpected number of channels: {images.shape[-1]}")
-                    return False
+                    pass  # Already RGB
             elif len(images.shape) == 3:
-                # Might be (N, H, W) - add channel dimension and convert to RGB
+                # Add channel dimension and convert to RGB
                 images = np.expand_dims(images, axis=-1)
                 images = np.repeat(images, 3, axis=-1)
-            else:
-                print(f"Unexpected image shape: {images.shape}")
-                return False
 
-            # Resize images if they're not 64x64
+            # Resize if needed
             if images.shape[1:3] != (64, 64):
                 print(f"Resizing images from {images.shape[1:3]} to (64, 64)")
                 resized_images = []
-                for i, img in enumerate(images):
-                    if i % 1000 == 0:
-                        print(f"Resizing image {i}/{len(images)}")
-
-                    # Handle different data types
-                    if img.dtype != np.uint8:
-                        # Normalize to 0-255 if not already
-                        if img.max() <= 1.0:
-                            img = (img * 255).astype(np.uint8)
-                        else:
-                            img = img.astype(np.uint8)
-
-                    # Resize image
-                    if img.shape[2] == 1:  # Grayscale
-                        resized = cv2.resize(img[:, :, 0], (64, 64))
+                for img in images:
+                    resized = cv2.resize(img, (64, 64))
+                    if len(resized.shape) == 2:
                         resized = cv2.cvtColor(resized, cv2.COLOR_GRAY2RGB)
-                    else:  # RGB
-                        resized = cv2.resize(img, (64, 64))
-                        if img.shape[2] == 3:
-                            # Convert BGR to RGB if needed (OpenCV uses BGR)
-                            resized = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
-
                     resized_images.append(resized)
-
                 images = np.array(resized_images)
-            else:
-                # Images are already 64x64, just ensure they're in the right format
-                if images.dtype != np.uint8:
-                    if images.max() <= 1.0:
-                        images = (images * 255).astype(np.uint8)
-                    else:
-                        images = images.astype(np.uint8)
 
-            # Ensure labels are in the correct format
-            if labels.ndim > 1:
-                # If labels are one-hot encoded, convert back to class indices
-                if labels.shape[1] == NUM_CLASSES:
-                    labels = np.argmax(labels, axis=1)
-
-            # Validate data
-            assert len(images) == len(labels), f"Mismatch between images ({len(images)}) and labels ({len(labels)})"
-            assert images.shape[1:] == (64, 64, 3), f"Images should be (64, 64, 3), got {images.shape[1:]}"
-            assert np.all(labels >= 0) and np.all(labels < NUM_CLASSES), f"Invalid label range: {labels.min()} to {labels.max()}"
+            # Ensure proper data types
+            if images.dtype != np.uint8:
+                if images.max() <= 1.0:
+                    images = (images * 255).astype(np.uint8)
+                else:
+                    images = images.astype(np.uint8)
 
             self.image_data = images
-            self.labels = labels
+            self.labels = labels.astype(np.int32)
 
-            print(f"Dataset loaded successfully!")
-            print(f"Final image shape: {self.image_data.shape}")
-            print(f"Final labels shape: {self.labels.shape}")
-            print(f"Image value range: [{self.image_data.min()}, {self.image_data.max()}]")
-            print(f"Label range: [{self.labels.min()}, {self.labels.max()}]")
-
+            print(f"Dataset loaded successfully from .npy files!")
             return True
 
         except Exception as e:
-            print(f"Error loading dataset: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            return False
+            print(f"Error loading .npy files: {str(e)}")
+            print("Falling back to folder structure...")
+            return self.load_folder_dataset(dataset_path)
 
     def load_kaggle_dataset(self, dataset_path=None):
         """
-        Load the sign language digits dataset - Updated to use numpy files
-        This method now calls load_numpy_dataset for backward compatibility
+        Load the sign language digits dataset - Updated to try folder structure first
         """
+        print("Loading Sign Language Digits dataset...")
+
+        # First try folder structure (which is the correct format for the GitHub dataset)
+        if self.load_folder_dataset(dataset_path):
+            return True
+
+        # Fallback to .npy files if folder structure doesn't work
+        print("Folder structure failed, trying .npy files...")
         return self.load_numpy_dataset(dataset_path)
 
     def load_image_directory(self, dataset_path):
@@ -190,30 +264,7 @@ class DataPreprocessor:
         Alternative method to load from image directories
         Expects structure: dataset_path/0/, dataset_path/1/, ..., dataset_path/9/
         """
-        images = []
-        labels = []
-
-        for digit in range(10):
-            digit_path = os.path.join(dataset_path, str(digit))
-            if os.path.exists(digit_path):
-                for filename in os.listdir(digit_path):
-                    if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-                        img_path = os.path.join(digit_path, filename)
-                        img = cv2.imread(img_path)
-                        if img is not None:
-                            # Resize to 64x64
-                            img = cv2.resize(img, IMAGE_SIZE)
-                            # Convert BGR to RGB
-                            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                            images.append(img)
-                            labels.append(digit)
-
-        if len(images) > 0:
-            self.image_data = np.array(images)
-            self.labels = np.array(labels)
-            return True
-        else:
-            return False
+        return self.load_folder_dataset(dataset_path)
 
     def normalize_data(self, normalization_type='standard'):
         """
@@ -286,7 +337,7 @@ class DataPreprocessor:
 
     def visualize_samples(self, num_samples=20, save_path=None):
         """
-        Visualize sample images from each class
+        Visualize sample images from each class - CORRECTED VERSION
         """
         if self.image_data is None or self.labels is None:
             raise ValueError("No data loaded. Call load_dataset first.")
@@ -294,45 +345,87 @@ class DataPreprocessor:
         fig, axes = plt.subplots(2, 10, figsize=(15, 6))
         fig.suptitle('Sample Sign Language Digit Images', fontsize=16)
 
-        # Get one sample from each class
+        print("\n=== VERIFYING IMAGE-LABEL ALIGNMENT ===")
+
+        # Verify data integrity first
         for digit in range(10):
             # Find indices of current digit
             digit_indices = np.where(self.labels == digit)[0]
+
+            print(f"\nDigit {digit}:")
+            print(f"  Found {len(digit_indices)} samples")
+
             if len(digit_indices) > 0:
-                # Select first sample
+                # Get first sample
                 sample_idx = digit_indices[0]
                 img = self.image_data[sample_idx]
+                actual_label = self.labels[sample_idx]
 
-                # Ensure image is in displayable format
-                if img.dtype == np.float32:
-                    # If normalized, scale back for display
-                    if img.max() <= 1.0:
-                        img = (img * 255).astype(np.uint8)
+                print(f"  Sample index: {sample_idx}")
+                print(f"  Actual label: {actual_label}")
+                print(f"  Expected label: {digit}")
 
-                # Display in first row
-                axes[0, digit].imshow(img)
-                axes[0, digit].set_title(f'Digit {digit}')
+                # Verification: Check if labels match
+                if actual_label != digit:
+                    print(f"  ⚠️  MISMATCH DETECTED! Expected {digit}, got {actual_label}")
+                else:
+                    print(f"  ✓ Labels match correctly")
+
+                # Prepare image for display
+                display_img = img.copy()
+                if display_img.dtype == np.float32:
+                    if display_img.max() <= 1.0:
+                        display_img = (display_img * 255).astype(np.uint8)
+
+                # Display first sample
+                if len(display_img.shape) == 3 and display_img.shape[2] == 3:
+                    axes[0, digit].imshow(display_img)
+                else:
+                    axes[0, digit].imshow(display_img, cmap='gray')
+
+                axes[0, digit].set_title(f'Digit {digit}\n(Label: {actual_label})')
                 axes[0, digit].axis('off')
 
-                # Display another sample in second row if available
+                # Display second sample if available
                 if len(digit_indices) > 1:
-                    sample_idx = digit_indices[1]
-                    img = self.image_data[sample_idx]
+                    sample_idx2 = digit_indices[1]
+                    img2 = self.image_data[sample_idx2]
+                    actual_label2 = self.labels[sample_idx2]
 
-                    if img.dtype == np.float32:
-                        if img.max() <= 1.0:
-                            img = (img * 255).astype(np.uint8)
+                    display_img2 = img2.copy()
+                    if display_img2.dtype == np.float32:
+                        if display_img2.max() <= 1.0:
+                            display_img2 = (display_img2 * 255).astype(np.uint8)
 
-                    axes[1, digit].imshow(img)
+                    if len(display_img2.shape) == 3 and display_img2.shape[2] == 3:
+                        axes[1, digit].imshow(display_img2)
+                    else:
+                        axes[1, digit].imshow(display_img2, cmap='gray')
+
+                    axes[1, digit].set_title(f'Digit {digit}\n(Label: {actual_label2})')
                     axes[1, digit].axis('off')
                 else:
                     axes[1, digit].axis('off')
+            else:
+                print(f"  ⚠️  No samples found for digit {digit}")
+                axes[0, digit].text(0.5, 0.5, f'No samples\nfor digit {digit}',
+                                    ha='center', va='center', transform=axes[0, digit].transAxes)
+                axes[0, digit].axis('off')
+                axes[1, digit].axis('off')
+
+        print("\n=== END VERIFICATION ===")
 
         plt.tight_layout()
 
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
         plt.show()
+
+        # Additional verification: Check overall label distribution
+        unique_labels, counts = np.unique(self.labels, return_counts=True)
+        print(f"\nLabel distribution verification:")
+        for label, count in zip(unique_labels, counts):
+            print(f"  Label {label}: {count} samples")
 
     def get_class_distribution(self):
         """
@@ -405,7 +498,7 @@ class DataPreprocessor:
         print(f"Inspecting dataset structure in: {dataset_path}")
         print("=" * 50)
 
-        def list_directory_contents(path, max_depth=2, current_depth=0):
+        def list_directory_contents(path, max_depth=3, current_depth=0):
             if current_depth > max_depth:
                 return
 
@@ -431,7 +524,64 @@ class DataPreprocessor:
 
         print("\n" + "=" * 50)
         print("Expected structure for this dataset:")
+        print("data/raw/Dataset/")
+        print("  0/ - Images for digit 0")
+        print("  1/ - Images for digit 1")
+        print("  2/ - Images for digit 2")
+        print("  ...")
+        print("  9/ - Images for digit 9")
+        print("\nAlternatively:")
         print("data/raw/sign-language-digits-dataset/")
-        print("  X.npy (or x.npy) - Image data")
-        print("  Y.npy (or y.npy) - Label data")
-        print("\nIf you have a different structure, please reorganize accordingly.")
+        print("  X.npy - Image data")
+        print("  Y.npy - Label data")
+
+    def verify_data_alignment(self):
+        """
+        Comprehensive verification of image-label alignment
+        """
+        if self.image_data is None or self.labels is None:
+            print("No data loaded for verification")
+            return False
+
+        print("=== COMPREHENSIVE DATA VERIFICATION ===")
+
+        # Basic checks
+        print(f"Image data shape: {self.image_data.shape}")
+        print(f"Labels shape: {self.labels.shape}")
+        print(f"Image dtype: {self.image_data.dtype}")
+        print(f"Labels dtype: {self.labels.dtype}")
+
+        # Length check
+        if len(self.image_data) != len(self.labels):
+            print(f"❌ LENGTH MISMATCH: {len(self.image_data)} images vs {len(self.labels)} labels")
+            return False
+
+        # Label range check
+        unique_labels = np.unique(self.labels)
+        expected_labels = np.arange(10)
+
+        print(f"Unique labels found: {unique_labels}")
+        print(f"Expected labels: {expected_labels}")
+
+        if not np.array_equal(unique_labels, expected_labels):
+            print("❌ LABEL RANGE ISSUE: Labels are not 0-9 consecutive")
+            return False
+
+        # Class distribution check
+        print("\n--- Class Distribution ---")
+        unique, counts = np.unique(self.labels, return_counts=True)
+        for label, count in zip(unique, counts):
+            print(f"Digit {label}: {count} samples ({count / len(self.labels) * 100:.1f}%)")
+
+        # Check for extreme imbalances
+        min_count = np.min(counts)
+        max_count = np.max(counts)
+        imbalance_ratio = max_count / min_count
+
+        if imbalance_ratio > 3.0:
+            print(f"⚠️  CLASS IMBALANCE WARNING: Ratio {imbalance_ratio:.2f}")
+        else:
+            print(f"✓ Class balance is reasonable (ratio: {imbalance_ratio:.2f})")
+
+        print("=== END VERIFICATION ===")
+        return True
